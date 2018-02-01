@@ -1,0 +1,1691 @@
+LIB40.DOC	FORTRAN LIBRARY (LIB40) VERSION 31(225)
+30-JULY-1971
+
+
+	CURRENT DOCUMENTATION:
+	----------------------
+
+	PDP10 SOFTWARE NOTEBOOK VOL. 2
+	FORTRAN IV PROGRAMMERS REFERENCE MANUAL.
+
+	PDP10 TIMESHARING HANDBOOK (AKW)
+	BOOK 5 PROGRAMMING IN FORTRAN
+
+
+	CHANGES SINCE VERSION 30
+	------------------------
+
+	THE MAJOR DIFFERENCES BETWEEN V31 AND V30 ARE:
+	NEW FLOATING OUTPUT ROUTINE IS MORE ACCURATE
+	CHARACTER OUTPUT IS NOW ABOUT THREE TIMES AS FAST AS BEFORE.
+	ALL KNOWN BUGS IN THE REENTRANT OPERATING SYSTEM FIXED
+	RANDOM ACCESS CHANGED TO USE DUMP MODE, AND TO KEEP CURRENT
+	BLOCK IN CORE LONGER. THIS REDUCES DISK ACCESSES.
+	OVER ONE HUNDRED BUGS FIXED.
+
+
+
+FORTRAN LIBRARY -LIB40- VERSION 30 UPDATE LEVEL "A"
+----------------------------------------------------
+
+The following list  of  CUSP  change  orders  complete  with
+diagnosis  and  cure  document  the  changes  to the FORTRAN
+library Version 30 which create Version 30A.   The  routines
+which  have  been  changed  are:  BUFFER, SAVCK, OCTO, TFMT,
+RELEAS, ERROR, FORSE,  DOUBT,  EXIT,  FLOUT,  ALPHI,  FLIRT,
+DIRT, INTI, OCTI, and DATBS.
+
+
+
+CCO#    ROUTINE         WHO
+
+31-02   RELEAS          VAA
+
+        Symptom:        Can't RELEAS a unit  that  has  been
+                        initialized  for  random  access and
+                        use that unit again with a different
+                        filename.     Error    message    is
+                        "FILENAME---NOT ON DEVICE DSK".
+
+        Diagnosis:      The filename did not get cleared  in
+                        the random access table 'FILES' 
+
+        Cure:           1.  Insert after CLRRER+4
+
+                            SETZM FILES.-5(B)
+                            SETZM FILES.-4(B)
+
+                        2.  Declare files. External
+
+
+
+31-03   MANUAL          VAA
+
+        Symptom:        In calls to define file LOOKUPS fail
+                        or  wrong  filename is produced when
+                        either the extension is less than  3
+                        characters  or  the filename is less
+                        than 6 characters with no  extension
+                        and   the  file  NAME.EXT  has  been
+                        specified in either a data statement
+                        or   read  into  a  single  word  at
+                        runtime.
+
+        Diagnosis:      In define when reading filename  ext
+                        a  double  word  is expected in case
+                        there are  nine  characters.   If  a
+                        filename  with  no extension is read
+                        or  an   extension   less   than   3
+                        characters,  define  goes  down into
+                        the next word to find the  remaining
+
+
+
+                        characters    whether    this   word
+                        contains the correct data or not.
+
+        Cure:           User must use an extension when file
+                        name   is   specified   in   a  data
+                        statement or read in at runtime.
+
+
+
+CCO#    ROUTINE         WHO
+
+31-04   ERROR           DMN
+
+        Symptom:        Programs failing  because  of  fatal
+                        I/O  errors print error summary with
+                        no errors detected.
+
+        Diagnosis:      ERRCNT only applied to errors in the
+                        traps tape and ASIN/ACOS.  SQRT (-1)
+                        etc.
+
+        Cure:           Define new type of error.  Fatal I/O
+                        error  put in it ERRTBL.  Make clse.
+                        Add 1 to ERRCNT and fill in table so
+                        at least one error is output.
+
+
+
+31-05   FORSE           VAA
+
+        Symptom:        "ILL MEM REF"  when  user  tries  to
+                        read  past  end  of  file on DSK/DTA
+                        through calls to  EOFC.   or  "end="
+                        used  more  than  once  on same unit
+                        when that unit is DSK/DTA.
+
+        Diagnosis:      End of file status is always cleared
+                        when  end of file is seen even if it
+                        is DSK/DTA.
+
+        Cure:           New  EOFTST.:/TLNN   I,40   ;DSK/DTA
+                        followed by old EOFTST.
+                        PUSHJ P,CLOSI.  ;NO, CLEAR EO
+
+
+
+31-11   DOUBT           DMN
+
+        Symptom:        Integer overflow on D.P.  Output  of
+                        0.100D+00.
+
+        Diagnosis:      Special check for  overflow  of  low
+                        order word into high order word does
+
+
+
+                        not turn off overtrap.
+
+        Cure:           Ensure  message   never   going   to
+                        overtrap.
+
+
+
+31-12   FORSE           DMN
+
+        Symptom:        Single quotes and non equal  formats
+                        interact unfavourably.
+
+        Diagnosis:      Single quote flag is never cleared.
+
+        Cure:           After et: POP P,0 insert TLZ I, 1000
+
+
+31-14   FORSE           DMN
+
+        Symptom:        STR 10-3072 I format (as opposed  to
+                        i15)  does  not  work  if CR is last
+                        thing in buffer.
+
+        Diagnosis:      FORSE twice scans to the  CR.   i.e.
+                        Loses 1 line.
+
+        Cure:           Change BUFST+5/SETZM  OVFLS.   (LOW)
+                        to SKIPE OVFLS.(LOW) JRST PPN+1
+
+31-15   FORSE           DMN
+
+        Symptom:        Multiple  record  formats   do   not
+                        output   correctly  when  the  1  is
+                        followed by tab.
+
+        Diagnosis:      Tab is converted to sixbit by TRC 40
+                        and  dispatched  via on index table.
+                        should convert tab to space first.
+
+        Cure:           at in
+                        DELETE  MOVE B,K
+                        CHANGE IN+1/MOVEM B, SAVSCN (LOW)
+                        TO          MOVEM K, SAVSCN (LOW)
+                        AFTER       IN+2/ILDB B,K
+                        INSERT      CAIN B,11
+                                    MOVEI B,40
+
+CCO#    ROUTINE         WHO
+
+31-16   FORSE           VAA
+
+        Symptom:        ENCODE/DECODE  error  handling   was
+                        poor.  Errors were not detected when
+
+
+
+                        the encode byte count  was  one  too
+                        small and when the decode byte count
+                        is one too small.
+
+        Diagnosis:      Design problem
+
+        Cure:           See SRCCOM below
+
+
+
+*TTY:âFORSE.MAC,FORSE.T1
+FILE 1) TITLE FORSE. V.30.0.5   FORTRAN IV OPERATING SYSTEM
+FILE 2) TITLE FORSE. V.30.0.16  FORTRAN IV OPERATING SYSTEM
+
+1)1     TITLE FORSE. V.30.0.5   FORTRAN IV OPERATING SYSTEM
+1)      SUBTTL V30.0.5 FROM V.30 20/NOV/70 /VAA
+1)      ;V.30  13-NOV-70        /DMN
+****
+2)1     TITLE FORSE. V.30.0.16  FORTRAN IV OPERATING SYSTEM
+2)      SUBTTL V30.0.16 FROM V30.0.5 2/DEC70 /VAA
+2)      ;V30.0.5 FROM V.30 20/NOV/70 /VAA
+2)      ;V.30   13-NOV-70       ;DMN
+***************
+1)7             JRST    [PUSHJ  P,EDERR. ;++SET ERROR FLG
+1)                      JRST    NOLOK1 ];++ RETURN
+1)              PUSH    P,0      ;SAVE ITEM COUNT
+****
+2)7             JRST    [SETON EDERR(LOW) ;++SET ERROR FLAG
+2)                      JRST    NOLOK1  ];++RETURN
+2)              PUSH    P,0      ;SAVE ITEM COUNT
+***************
+1)9     ENCOUT* IDPB    0,1(M)   ;++DEPOSIT
+1)              SKIPGE  OVFLS.(LOW) ;++LINE END. FMT OR CHAR CNT.
+1)              JRST    ENCOU1   ;++OVFLS. SET.
+1)              SOSG    2(M)     ;+;DROP CHAR COUNT
+****
+2)9     ENCOUT: SKPGE   OVFLS.(LOW) ;++LINE END. FMT OR CHAR CNT.
+2)              JRST    ENCOU1   ;++OVFLS. SET.
+2)              IDPD    0,(M)    ;++DEPOSIT BYTE
+2)              SOSG    2(M)     ;++DROP CHAR COUNT
+***************
+1)9                     PUSHJ P,EDERR. ;++COUNT TO ZERO.  SET ERROR FLAG
+1)                      JRST    NOLOK1] ;++IF FMT END LINE IGNORE.  RETUR
+N.
+****
+2)9                     SETOM   EDERR(LOW) ;++COUNT TO ZERO. FATAL
+ERROR .
+2)                      JRST    NOLOK1] ;++IF FMT END LINE IGNORE. RETUR
+N.
+
+
+
+***************
+1)10    FIB:    SETZM   END.(LOW) ;++ENDCODE/DECODE?
+2)              JRST    ENCEND   ;++FINISH UP ARRAY IF ENCODE
+2)      FIB:    SETZM   END.(LOW) ;CLEAR END OF FILE FLAG
+***************
+1)10            JRST    EDERR.   ;++ YES DON'T DO INPUT
+1)              PUSHJ   P,INP.   ;GET NEXT BUFFERFUL
+****
+2)10            JRST    DECERR.  ;++ YES DON'T DO INPUT
+2)              PUSHJ   P,INP.   ;GET NEXT BUFFERFUL
+***************
+1)10    EDERR.: SKIPE   EDERR(LOW) ;++HAVE WE BEEN HERE BEFORE?
+****
+2)10    DECERR: SETON   OVFLS.(LOW) ;++END OF LIEN FLG
+2)              MOVEI   0,CR     ;++TELLS CONVERSION ROUTINE END
+OF LINE
+2)              SETOM   EDERR(LOW) ;+;SET ERROR FLAG
+2)              POP     P,(P)    ;++GO RIGHT BACK TO CONVERSION R
+TN
+2)              POPJ    P,       ;++RETURN
+
+FILE1) TITLE FORSE. V.30.0.5    FORTRAN IV OPERATING SYSTEM
+FILE2) TITLE FORST. V.30.0.16   FORTRAN IV OPERATING SYSTEM
+
+2)      ENCEND: SKIPGE  I        ;++ENCODE?
+2)              SKIPN   A,2(N)   ;++BUFFER EMPTY?
+2)              JRST    FIB.     ;++DECODE OR BUFFER EMPTY.
+2)              SETZM   OVFLS.(LOW) ;++CLEAR OVERFLOW FLG
+2)              MOVEI   0," "    ;BLANK
+2)              PUSHJ   P,DEPOT. ;+;FILL UP ARRAY.
+2)              SOJG    A,.-1    ;++
+2)              JRST    FIB.     ;++RETURN WHEN THROUGH.
+2)      DERR.:  SKIPE   EDERR(LOW) ;++HAVE WE BEEN HERE BEFORE?
+
+
+
+31-17   FORSE           DMN
+
+        Symptom:        I/O inproper mode  bit  (write  lock
+                        bit) on input is not trapped.
+
+        Diagnosis:      Not checked for
+
+        Cure:           After IIB.:+10/PUSHJ P,ENDTP.   TRNE
+                        F,IOWERR PUSHJ P,WLKER.
+
+
+
+31-20   OCTO            DMN
+
+        Symptom:        Octal output of  valid  fields  gets
+                        asterisk fill.
+
+        Diagnosis:      Bad   code   given    by    software
+                        specialist not checked thoroughly.
+
+        Cure:           Change OCTO.+13/JUMPE ACW, LODCHR TO
+                        JUMPLE ACW, LODCHR
+                        DELETE OCTO.+16/JUMPL ACW, OUTAST
+                        DELETE LODCHR+1/AOJLE ACW, LODCHR
+                        REPLACE WITH JUMPGE ACW,.+3
+                                     JUMPN ACO, OUTAST
+                                     AOJA ACW, LODCHR
+
+
+
+CCO#    ROUTINE         WHO
+
+31-22   TFMT            DMM
+
+        Symptom:        T formed does not backup pointer.
+
+        Diagnosis:      Wrong flag tested.
+
+        Cure:           Change TFMT.+25/TLNN 1,20000 to
+		 TLZN 1,4
+
+31-23   FORSE           DMN
+
+        Symptom:        FORSE will not assemble without one:
+                        DATBS or HPAR.  
+
+        Diagnosis:      True but do users realize this?
+
+        Cure:           After IFN REENT, <HISEG>  insert
+                        IFE  REENT,  <IFNDEF FORSE., <PRINTX
+                        ASSEMBLE WITH EITHER DATBS OR HPAR> 
+
+
+
+31-24   FORSE           DMN
+
+        Symptom:        T format doesn't always work.
+
+        Diagnosis:      Bad code at endln.  In test  to  see
+                        if pointer needs backing up.
+
+        Cure:
+
+ENDLN.  TLZN    I,4             ;T FORMAT THIS LINE
+        JRST    NOTTL           ;NO
+        MOVS    0,1(M)          ;GET CURRENT POINTER
+        TRC     0,-1            ;BYTE POINTERS COUNT
+         BACKWARDS
+        PUSH    P,0             ;SOMEWHERE TO SAVE IT
+        MOVS    0,TPNTR.(LOW)   ;BACKUP POINTER
+        TRC     0,-1            ;CONVERT IT ALSO
+        CAMG    0,(P)           ;HAS THERE BEEN A BACKUP?
+        JRST    ENDLN1          ;NO, BUT POP OFF STORE
+         POINTER
+        MOVE    0,TPNTR.(LOW)   ;RESTORE SAVED POINTER AND
+         ITEM COUNT
+        MOVEM   0,1(M)
+        MOVE    0,TCNT2.(LOW)
+        MOVEM   0,2(M)
+ENDLN1. POP     P,0             ;GET RID OF MODIFIED POINTER
+        JUMPGE  I,BUFST         ;JUMP IF INPUT
+        SKIPGE  ENCDEC(LOW)     ;++ENCODE?
+        JRST    [SETOM OVFLS.(LOW)      ;++SET LIN!c‘C
+
+
+
+CCO#    ROUTINE         WHO
+
+31-25   TFMT            DMN
+
+        Symptom:        Test  if  backup  needed  is  poorly
+                        coded, incomprehensible, and slow.
+
+        Diagnosis:      Use same code in FORSE.  (CCO-31-24)
+
+        Cure:
+
+
+31-26   FLIRT           DMN
+
+        Symptom:        Input of very small numbers loses if
+                        digit  follow  point, i.e.  1.0 E-37
+                        or 1.0000e-37 fails 
+
+        Diagnosis:      Poor code
+
+
+
+        Cure:
+
+
+
+31-27   FLOUT           DMN
+
+        Symptom:        Floating point  output  had  serious
+                        rounding problems.  
+
+        Diagnosis:      Poor algorithm.
+
+        Cure:           Replace old routine with new FLOUT.
+
+
+
+31-30   SAVCK/BUFFER            VAA
+
+        Symptom:        'ASSIGN BY CONSOL' for logal FORTRAN
+                        unit   numbers  does  not  work  for
+                        MAGDEN and BUFFER.
+
+        Diagnosis:      Routine assignments to device number
+                        is  implemented  in FORSE but not in
+                        MAGDEN or BUFFER.
+
+        Cure:           1.  See attached listing for changes
+                            to SAVCK.
+
+                        2.  In buffer after buffer: +1/PUSHJ
+                            P,SAVCK insert    PUSHJP, INTVR.
+
+                        3.  In   buffer    delete    ILLNUM:
+                            +1/PUSHJ P,INTVR.
+
+
+
+.TY SAVCK.Z30
+TITLE   SAVCK. V30.0.30
+SUBTTL  V30.0.30 FROM V.001     10/DEC/70 /VAA
+;V.001  31-JAN-68 N PAPPAS
+
+ENTRY   SAVCK.,SAVP1.,SAVPL.,INTVR.,UNSV.
+EXTERNAL        DEVER.,DVTOT.,DEVTB.,DYNND.,DYNDV.,INIER.
+
+A=1
+B=2
+C=3
+D=4
+E=5
+F=6
+Q=16
+P=17
+
+;USES A SEVEN WORD BLOCK TO SAVE AC'S 0-6
+;VERIFIES THAT DEV NUM IS LEGAL
+;ZEROES D AND E, DEV NUM IN A&0
+;CALLED BY PUSHJ P,SAVCK.
+
+SAVCK.: MOVEM   0,SAVPL.                ;SAVE
+        MOVE    0,[XWD A,SAVP1.]        ;AC'S
+        BLT     0,SAVPL.+6              ;0-6
+        SETZB   D,E             ;INITIALIZE STORAGE AREAS
+        MOVE    0,@(Q)          ;GET DEV NUM FOR DEVER.
+        MOVEI   A,DVTOT.
+        COML    A,0
+        DKIPG   A.0             ;YES, BUT IS IT >0?
+        PUSHJ   P,DEVER.        ;NO, FATAL ERROR!
+        OPOJ    P,              ;GOOD RETURN
+
+UNSV.:  MOVE    0,[XWD SAVP1.,A]        ;
+        BLT     0,F             ;RESTORE
+        MOVE    0,SAVPL.
+        POPJ    P,
+
+GET DEVICE NAME AND SEE IF DEVICE ALREADY INIT
+; CALLED BY :  PUSHJ P,INTVR.
+; EXPECTS DEV NUM IN A
+; USES: 0,E,F
+; BAD RETURN: INIER., DEV NUM IN A, PC&FLAGS IN E
+; GOOD RETURN: DEV NAM IN E, (F)=PTR TO DYNDV.,DEV NUM IN
+ A,(0)=GARGAGE
+
+INTVR.: MOVE    C,A             ;SAVE DEV NUM IN C
+        IDIVI   A,12            ;CONVERT DEVICE NUMBER TO
+         6BIT
+        LSH     A,6
+        OR      A,B
+        IORI    A,2020
+        TRNN    A,700
+
+        LSH     A,6
+        LSH     1,30
+        MOVE    E,A
+        CALLI   E,4
+        TRNN    E,400000        ;IS UNIT ASSIGNED BY CONSOL?
+        JRST[   CAILE   C,DVTOT.;NOT ASSIGNED BY CONSOL. TOO
+         BIG FOR DEVT
+        B.?
+        PUSHJ   P,DEVER.        ;YES, FAIL
+        MOVE    E,DEVTB.(C)     ;NO, GET DEFAULT NAME
+        JRST    INTVR1  ]       ;RETURN
+        MOVE    E,A                     ;YES ASSIGNED BY
+         CONSOL
+INTVR1: MOVEI   F,DYNND.                ;END-OF-DYNDV. IN F
+NAMLOP: CAIG    F,DYNDV.                ;END OF SEARCH?
+        POPJ    P,                      ;YES, NOT YET INIT
+        LDB     0,[POINT 30,(F),29]     ;NO, PICK UP A NAME
+        LSH     0,6             ;LEFT ADJUST IT
+        CAMN    E,0             ;THE ONE WE WANT?
+        JSP     0,DIE           ;YES, FAIL!
+        SOJA    F,NAMLOP        ;NO, UPDATE PTR
+
+DIE:    MOVE    7,[PUSHJ P,INIER.]
+        JRST    7               ;DEV NAM AT PC-2
+
+SAVPL.: BLOCK   7               ;AC'S SAVED HERE
+        SAVP1.=SAVPL.+1
+
+        END
+
+
+
+CCO#    ROUTINE         WHO
+
+31-31   FORSE           VAA
+
+        Symptom:        When user tries to read past an  end
+                        of   file   on   DSK  he  gets  'DEV
+                        WRITEPROTECTED' error which  is  not
+                        meaningful.  When should continue to
+                        get end of file condition  for  each
+                        read.
+
+        Diagnosis:      @ EOFTS.  A TLNN I,40  was  done  to
+                        check for directory device and input
+                        close  is  done  if  not   directory
+                        device.   However  @  HRS+3  /TDZ I,
+                        [377677,,-1] is  done  which  clears
+                        bit 12 and test at EOFTS.  Fails.  
+
+        Cure:           Change HRS+3/TDZ  I,[377637  777777]
+                        so it doesn't clear bit 12.  
+
+
+
+31-32   FLIRT           DMN
+
+        Symptom:        FLIRT does not accept ANSII standard
+                        G  type input should accept +12345+2
+                        in G8.2 gets ill character on 2nd  +
+                        sign.  
+
+        Diagnosis:      FLIRT thinks  that  construction  is
+                        illegal.
+
+        Cure:           Change PLUS+5/JUMPL FMT, .+3
+                        to            JUMPL FMT, .+2
+                        delete PLUS+7/JRST ERROR.  
+
+
+
+31-33   EXIT            DMN
+
+        Symptom:        EXIT should release all I/O so  user
+                        can restart anywhere in his program.
+
+        Diagnosis:
+
+        Cure:           Do a reset.  UUO.
+
+
+
+31-34   DATBS           DMN
+
+
+
+        Symptom:        PDLOV in FLOUT.
+
+                        Dianosis:  pushdown  list  not  long
+                        enough.
+
+        Cure:           Make VAR==100 rather than 50
+
+31-40   ALPHI           VAA     DOCUMENTATION CHANGE
+
+        Symptom:        Alphanumeric input converted * to  0
+                        which it should not do.
+
+        Diagnosis:      ALPHI checked for * and changed it.
+
+        Cure:           After ALOAD+11/XCT  IIB.   delete  2
+                        instructions:
+
+                        CAIN    ACO,"*" MOVEI   ACO,"0"
+
+31-41   FLIRT           VAA     DOCUMENTATION
+
+        Symptom:        On  floating  input  asterisks  were
+                        converted    to    "0"    which   is
+                        undesirable.
+
+        Diagnosis:      * was checked for and 0 substituted.
+
+        Cure:           Put repeat 0, around offending code,
+                        installations  who  want the convert
+                        to 0 can delete the repeat 0.  
+
+                        CHANGE CL+3/CAIN ACO,"*"
+                        CL+4/MOVEI ACO,"0" 
+
+                        to:
+                        REPEAT 0,<CAIN ACO,"*"
+                        MOVEI ACO,"0"  > 
+
+
+
+31-42   DIRT            VAA     DOCUMENTATION
+
+        Symptom:        Double precision input  converted  *
+                        to 0 bad idea.
+
+        Diagnosis:      Code checks for * and substitutes 0.
+
+        Cure:           Change     MORECH:+6/CAIE     CH,"*"
+                        to:    REPEAT 0,<CAIECH,"*"  ;...> 
+
+
+
+31-43   INTI            VAA     DOCUMENTATION
+
+        Symptom:        Integer input converts * to 0.   Bad
+                        idea.
+
+        Diagnosis:      Code checks for * and subtitutes 0.
+
+        Cure:           Change GET+4/CAIN ACO,"*" ;...
+                        GET+5/MOVEI ACO,"0"  ;...  
+
+                        to:    REPEAT 0,<CAIN ACO,"*"   ;...
+                        MOVEI ACO,"0"   ;... > 
+
+31-44   OCTI            VAA     DOCUMENTATION
+
+        Symptom:        Octal input converts *  to  0.   Bad
+                        idea.
+
+        Diagnosis:      OCTI checks for * and substitutes 0.
+
+        Cure:           Change GET+4/CAIN ACO,"*"
+                                GET+5/MOVEI ACO,"0"
+                        to:
+                           REPEAT 0,<CAIN ACO,"*"
+                                     MOVEI ACO,"0" >
+
+
+CCO 31-46	VAA				SER/SPR 33244
+
+ROUTINE		.DIRT
+
+SYMPTOM:	DOUBLE PRECISION FREE FORMAT INPUT GOES INTO INFINITE
+		LOOP WHEN INPUT DATA IS JUST A CARRIAGE RETURN
+
+DIAGNOSIS:	IN DIRT A <CR> IS TREATED JUST LIKE A BLANK.  IF NO
+		DIGIT WAS SEEN BEFORE THE BLANK IT IS IGNORED AND ANOTHER
+		CHARACTER CALLED FOR.  HOWEVER, THE <CR> CAUSES LINE
+		OVERFLOW FLAG TO BE SET AND THE BYTE POINTER IS NEVER 
+		MOVED PAST THE <CR>.  WHEN A FIELD WIDTH IS SPECIFIED
+		AFTER THE FIELD WIDTH IS EXHAUSTED THE INPUT IS TERMINATED
+		HOWEVER IN FREE FORMAT A BLANK IS A DELIMITER BUT AS
+		ROUTINE IT IS IGNORED.
+
+CURE:		1)  DELETE MORECH+1/CAIE CH,15
+
+		2)  INSERT AFTER MORECH+3/JRST BLNKIN
+				CAIN CH,15
+				JRST CRIN
+
+		3)  ADD LABEL 'CRIN' @ BLNKIN+2, SO IT IS BLNKIN+2=CRIN:
+		    JMPL W,CPOPJ
+
+
+
+CCO 31-51	VAA
+
+ROUTINE		RANIO
+
+SYMPTOM:	END OF FILE TEST FAILS FOR RANDOM ACCESS INPUT UNDER 
+		4 SERIES MONITORS AND GARBAGE IS READ IN.
+
+DIAGNOSIS:	CHARACTER COUNT IS INCORRECT IN BUFFER HEADERS.
+
+CURE:		RANASC+21/JUMPE C,RANASC+23 SOJLE,RENA=C+23
+		RANASC+23/MOVE C,A SOS C,A
+		RANASC+25/MOVE A, FILES .-2(D) MOVE A,WOPREC(AC)
+		RANASC+26/SOJ C,0 JMULJ A,5
+
+		SRCCOM IN CCO BOOK
+
+CCO 31-55	VAA				SER/SPR 35N
+
+ROUTINE		SNGL
+
+SYMPTOM:	NONE
+
+DIAGNOSIS:	CLEAN UP CODE - A CHECK IS MADE FOR A NEGATIVE LOW ORDER
+		WORD WHICH CAN'T HAPPEN ACCORDING TO HDW SPECS.
+
+CURE:			ENTRY SNGL
+			SIXBIT /SNGL/
+		SNGL:	0			;ENTRY TO SNGL ROUTINE
+			MOVEI	1,@(16)		;PICK UP ADDR. OF ARG
+			MOVE	0,(1)		;PICK UP HIGH ORDER OF ARG.
+			FADR	0,1(1)		;ADD IN LOW ORDER AND ROUND.
+			JRA	16,1(16)	;EXIT
+			END
+
+
+
+CCO 31-56	VAA				SER/SPR 34911
+
+ROUTINE		PLOT
+
+SYMPTOM:	IF FLOATING UNDERFLOW OCCURS A PDLOV RESULTS @ TYPMES
+		IN ERROR
+
+DIAGNOSIS:	P.D.L. NOT LONG ENOUGH BY ONE.
+
+CURE:		AFTER PCHN=17
+		INSERT PDPSIZ==7
+		CHANGE PPDP: XWD-6,
+			     BLOCK 6
+		TO     PPDP: IOWD PDPSIZ,PDP
+		       PDP : BLOCK PDPSIZ
+
+
+
+CCO 31-57	VAA
+
+ROUTINE		FORSE
+
+SYMPTOM:	SOME PEOPLE DO NOT LIKE TO HAVE OUTPUT FIELDS FILLED
+		WITH * IF CONSTANT OVERFLOWS FIELD WIDTH SPECIFIED IN
+		FORMATS.
+
+DIAGNOSIS:	CHANGE CODE TO BE AN ASSEMBLY OPTION ASTFL=0
+
+CURE:		IFE ASTFL,<INTERN ASTRK.>
+		IFE ASTFL,<ACW==4>
+		IFE ASTFL,<ASTRK.:  -
+				    -
+				    -
+				    POPJ P,>
+
+CCO 31-61	DB	DOCUMENTATION CHANGE
+
+ROUTINE		FORSE,DATBS,LOW40,BINWR,RELEAS
+
+SYMPTOM:	COMPUTE - BOUND FOR JOBS DOING ONLY I/O
+
+DIAGNOSIS:	1.  FORSE DOES 1 OR 2 DEVCHR'S FOR EACH READ OR WRITE
+		    STATEMENT.
+
+		2.  SLIST CALLS 1 WORD TRANSFER ROUTINE FOR EACH WORD
+		    OF A BINARY ARRAY, RATHER THAN BLT A BUFFER FULL
+
+CURE:		1.  INTRODUCE NEW TABLE DYNCH. IN DATA CORE, WITH LH=
+		    LH DEVCHR BITS, RH=DEVICE NUMBER.  FOR EACH READ
+		    OR WRITE, SEARCH TABLE TO SEE IF THE DEVICE IS
+		    ALREADY OPEN.  CLEAR ENTRY ON RELEASE.
+
+		2.  FOR BINARY ARRAYS, USE BLT
+
+		SEE ALSO CCO# 31-74
+
+
+
+CCO 31-63	VAA
+
+ROUTINE		INTO
+
+SYMPTOM:	PEOPLE DON'T LIKE '*' FILL
+
+DIAGNOSIS:	MAKE IT AN ASSEMBLY OPTION
+
+CURE:		1.  DEFINE ASTFL==0
+
+		2.  DELETE EXTERN ASTRK.
+
+		3.  INSERT IFE ASTFL, <EXTERN ASTRK.>
+
+		4.  @MAKDEC:+10/SUBM ACW,ACCH
+		     IFN ASTFL,<MOVMS ALLM>
+		     IFE ASTFL,<SUBM ALW,ACCH>
+
+		5.  @MAKDEC:+13/PUSHJ POP,ASTRK
+			    +14
+		     IFE ASTFL,<PUSHJ PDD,ASTRK.
+		     IFN ASTFL,<MOVE A,ACW
+				 JRST CHARO>
+
+CCO 31-64	VAA
+
+ROUTINE		FORSE
+
+SYMPTOM:	PEOPLE DON'T LIKE "*" FILL
+
+DIAGNOSIS:	MAKE THE FEATURE AN ASSEMBLY OPTION
+
+CURE:		SEE CCO# 27-95.
+
+		1.  DEFINE ASTFL==0
+
+		2.  PUT IFE ASTFL,<     >
+		    AROUND ALL THAT CODE.
+
+
+
+CCO 31-65	VAA
+
+ROUTINE		DOUBT
+
+SYMPTOM:	PEOPLE DON'T LIKE "*" FILL FEATURE
+
+DIAGNOSIS:	MAKE IT AN ASSEMBLY OPTION
+
+CURE:		SEE CCO# 27-96
+
+		1.  DEFINE ASTFL==0
+
+		2.  PUT IFE ASTFL, <     >
+		    AROUND APPROPRIATE CODE.
+
+
+
+CCO 31-66	VAA
+
+ROUTINE		OCTO
+
+SYMPTOM:	PEOPLE DON'T LIKE "*" FILL
+
+DIAGNOSIS:	MAKE IT AN ASSEMBLY OPTION
+
+CURE:		1.  DEFINE ASTFL==0
+
+		2.  DELETE EXTERN ASTRK.
+
+		3.  INSERT IFE ASTFL,<EXTERN ASTRK.>
+
+		4.  @LODCHR:+1 PUT BRACKET AROUND 2 INSTRUCTIONS
+		     IFE ASTFL,<JUMPGE---
+				 ---   ---
+				 AOJA  --->
+
+		5.  INSERT @ LODCHR+1
+		    IFN ASTFL,<AOJLE ACW,LODCHR>
+
+		6.  A OUTLAST PUT BRACKETS AROUND 3 INSTRUCTIONS
+		    IFE ASTFL,<OUTAST;---
+				       ---
+				       --->
+
+CCO 31-71	VAA
+
+ROUTINE		FORSE
+
+SYMPTOM:	END OF FILE CHARACTER ON TTY IS PICKED UP AS ILLEGAL
+		CHARACTER. !b†Z=32 WHICH IS THE EOF CHARACTER.
+
+DIAGNOSIS:	FORSE DOES NOT EXPECT THE CHARACTER BUT EXPECTS EOF 
+		STATUS LIKE ALL OTHER I/O DEVICES.  SHOULD CHECK FOR 
+		cZ=32.
+
+CURE:		AFTER IOK:+5/JRST NXTLN.
+		INSERT:	CAIN 0,32	;c‘Z ON TTY?
+			JRST EOFTS.	;YES=>END OF FILE
+
+
+
+CCO 31-73	VAA
+
+ROUTINE		MBSR
+
+SYMPTOM:	READ BACKSPACE READ AND OTHER MAGTAPE BACKSPACE FUNCTIONS
+		DIDN'T WORK.
+
+DIAGNOSIS:	IF INPUT HAD BEEN DONE BEFORE A BACKSPACE WAS ISSUED
+		MBSR. DID AN EXTRA BACKSPACE THINKING INPUT & OUTPUT WERE
+		THE SAME.  IF AN OUTPUT IT INSERTS BACKSPACE OVER THE
+		RECORD JUST WRITTEN & READ IT BACK.
+
+CURE:		@ .NSYNC1+5 CHANGE 2 INSTRUCTIONS
+
+		NYSNC1+5/JUMPN A,.+2	JUMPE A,BPHSE.
+		NSYNC1+6/PUSHJ P,BPHSE.	SKIPGE I
+
+
+CCO 31-75	DMN				SER/SPR 3712
+
+ROUTINE		FLIRT
+
+SYMPTOM:	DECIMAL POINT AFTER E OR D IS NOT FLAGGED AS AN ILLEGAL
+		CHARACTER IN E, F, G INPUT
+
+DIAGNOSIS:	NO CHECK IS MADE TO SEE IF IN EXPONENT WHEN PERIOD IS
+		SEEN
+
+CURE:		INSERT AT DECPT
+
+			TLNE FL,EXP
+			JRST ERROR
+
+CCO 31-76	DMN				SER/SPR 3638
+
+ROUTINE		FLIRT
+
+SYMPTOM:	FLOATING POINT INPUT OF NUMBERS IN RANGE
+		3b†27-.5< X <3c‘27
+		IE 134217727.5< X <134217728.0
+		ENTER AS 0.0
+
+DIAGNOSIS:	134217727 IS ACCUMULATED AS 777,,-1 AND A FRACTION 
+		EQUAL TO GREATER THAN .5 CAUSES OVERFLOW INTO THE
+		CHARACTERISTIC OF THE NUMBER.  THIS CONDITION IS NEVER
+		DETECTED
+
+CURE:		FIX CHANGE
+
+		ENDF1+17/TLC H,233000
+
+			TO
+
+		TLCE H,233000
+		MOVSI H,234400
+
+
+
+CCO 31-77	DMN				SER/SPR 3644
+
+ROUTINE		FLIRT
+
+SYMPTOM:	FIXED FORMAT INPUT (IE F16.7) FROM TTY DOES NOT
+		TERMINATE ON CR.  INSTEAD IT GENERATES ENOUGH 0'S
+		TO FILL THE FORMAT.
+
+DIAGNOSIS:	NOT IN SPEC'S BUT EASY TO DO.
+
+CURE:		DEFINE TTYFL, IN FORSE EQUAL TO TTYLPT BUT INTERNAL.
+
+		IN FLIRT AFTER TSTVAR: JUMPL W,ENDF
+		INSERT			SKIPE  TTYFL.
+					JRST ENDF
+		EXTERNAL TTYFL.
+
+CCO 31-100	DMN	DOCUMENTATION CHANGE
+
+ROUTINE		RELEAS
+
+SYMPTOM:	RELEAS OF A DEVICE NOT YET INITIATED CAUSES FATAL ERROR.
+
+DIAGNOSIS:	IF CHANNEL IS NOT YET INITIATED RELEASE GIVES A FATAL 
+		ERROR RETURN, IT SHOULD JUST RETURN, SO RELEASE IS A
+		NO-OP
+
+CURE:		CHANGE  SLTLOP+7/PUSHJ P,INIER
+
+		TO      JRST RET
+
+		AFTER   REL:RELEASE 0,0
+
+		INSERT  RET:
+
+
+CCO 31-104	DMN	DOCUMENTATION CHANGE
+
+ROUTINE		EXIT
+
+SYMPTOM:	NEW ENTRY AT EXIT0 BYPASSES THE ERROR SUMMARY
+		SAVES TIME.
+
+CURE:		PUT ENTRY EXIT0
+
+		EXIT0	0
+			JRST EXITA
+		EXITA:	IS AT RESET. INIT
+
+
+
+CCO 31-106	DMN	DOCUMENTATION CHANGE	SER/SPR 4044
+
+ROUTINE		ERROR
+
+SYMPTOM:	FINAL RUNTIME AND ELAPSED TIME MESSAGES FAR TOO LONG.
+
+CURE:		CHANGE MESSAGE TO BE
+
+		CPU TIME:  HH:MM:SS.CC	ELAPSED TIME:  HH:MM:SS.CC
+
+		WHERE	HH IS HOURS
+			MM IS MINUTES
+			SS IS SECONDS
+			CC IS HUNDREDTHS OF A SECOND
+		THE FORMAT IS THE SAME AS FOR THE MONITOR WATCH TYPE-OUT.
+		ZERO FIELDS ARE SUPRESSED.
+
+CCO 31-107	DMN	DOCUMENTATION CHANGE
+
+ROUTINE		ERROR
+
+SYMPTOM:	SOME PEOPLE DON'T WANT FORTRAN TO PRINT RUN TIME AND
+		EXECUTION TIME.
+
+DIAGNOSIS:	USER CAN USE MONITOR WATCH COMMAND FOR SAME PURPOSE.
+
+CURE:		PUT CONDITIONAL IFE WATCH,< COMMAND CODE IN ERROR.
+
+		DOCUMENT FEATURE BUT LEAVE WATCH=0 FOR PRESENT.
+
+
+
+CCO 31-110	VAA				SER/SPR 3736
+
+ROUTINE		TPFCN
+
+SYMPTOM:	REWINDS ISSUED TO DTA IN FORTRAN CAUSE PREMATURE END
+		OF FILE UPON NEXT READ AND/OR BAD DIRECTORY MESSAGE 
+		FROM MONITOR.
+
+DIAGNOSIS:	TPFIN. WAS CHECKING WRONG BITS IN DEVCHR. AND DOING 
+		MAGTAPE FUNCTIONS TO DTA.
+
+CURE:		@+TDFCN.+5/TLNE5,200400 TLNE 5,4
+
+
+
+CCO 31-114	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	BINARY D.P ARRAYS ARE NOT HANDLED CORRECTLY
+
+DIAGNOSIS:	ONLY HIGH WORD GOES IN AND OUT.
+
+CURE:		CHANGE CODE TO USE NEW BLOCK TRANSFER ROUTINE.  FOR 
+		ALL BINARY ARRAYS, MAKE D.P LOOK LIKE COMPLEX ARRAYS
+		IE DOUBLE THE WORD COUNT.
+
+
+
+CCO 31-115	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	ALL I/O FLAGS ARE ABSOLUTE I.E. NOT SYMBOLIC.
+
+DIAGNOSIS:	NOT DEFINED SYMBOLICLY
+
+CURE:		DEFINE THEM SYMBOLICALLY AND SUBSTITUTE SYMBOL FOR
+		VALUE IN FORSE
+
+
+
+CCO 31-116	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	DEPOT. TAKES A LONG TIME
+
+DIAGNOSIS:	IF DOES A PUSH AND POP OF "A" FOR EACH CHARACTER.
+		THIS IS ONLY REQUIRED FOR THE FIRST AND LAST CHARACTER.
+
+CURE:		REMOVE PUSH-POP PAIR AND PUT IN WHERE REQUIRED.
+
+
+
+CCO 31-117	DMN
+
+ROUTINE		DEVTB
+
+SYMPTOM:	CHAIN DOES NOT WORK WITH RE-ENTRANT FORSE.
+
+DIAGNOSIS:	CHAIN CALLS DEVTB BEFORE FORSE SO DATA BASE IS OUT OF
+		ORDER.
+
+CURE:		MAKE DEVTB BE PART OF LOW40 IF RE-ENTRANT.
+
+
+
+CCO 31-122	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	RANDOM ACCESS OF FILE WITH NEGATIVE BLOCK NUMBER FOR
+		USETI CAUSES FILE TO EXPAND RAPIDLY AND GET QUOTA 
+		EXCEDED.
+
+DIAGNOSIS:	AFTER USETI THERE IS NO TEST FOR FAILURE (END OF FILE
+		SET)
+
+CURE:		AFTER INP.+5/X67 0
+
+		INSERT 	PUSH P,F
+			PUSH P,STAT.
+			TRNE F,IODEND
+			JRST E,OFTS.
+			POP  P,F
+
+CCO 31-124	RMD				SER/SPR 10-4063
+
+ROUTINE		ATAN2
+
+SYMPTOM:	ATAN2 GIVES WRONG RESULT FOR ARGUMENT (0,0).  ALSO
+		SPURIOUS DIVIDE CHECK MESSAGES APPEND.
+
+CURE:		SRCCOM IN CCO BOOK
+
+
+
+CCO 31-125	DMN	DOCUMENTATION CHANGE
+
+ROUTINE		LOW40
+
+SYMPTOM:	FAILURE TO GETSEG FORTR.SHR DOES NOT INDICATE WHY
+
+DIAGNOSIS:	ONLY ONE MESSAGE FOR ALL POSSIBLE ERRORS
+
+CURE:		PUT OUT GETSEG ERROR CODE AS WELL AS MESSAGE
+		NOW PRINTS
+
+		CANNOT ACCESS FORTR.SHR - GETSEG ERROR CODE XX
+		WHERE XX IS AN OCTAL NUMBER . SEE GETSEG UUO FOR MEANING.
+
+
+
+CCO 31-131	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	FORSE DOES NOT RECOGNIZE FF AND VT AS END OF LINE.
+
+DIAGNOSIS:	FORSE ONLY LOOKS FOR CR AND LF.
+
+CURE:		MAKE FORSE LOOK FOR ANY CHAR BETWEEN LF AND CR INCLUSIVE
+		(I.E. LF, VT, FF AND CR).
+
+
+
+CCO 31-132	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	REENTRANT FORSE GETS ILL MEM REF IF USER SPECIFIES ERROR
+		CONTROL.
+
+DIAGNOSIS:	AC 16 IS NOT RESET WHEN CONTINUE PASSES TO USER
+
+CURE:		RESET IT.
+CCO 31-133	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	OUTPUT OF CHARACTERS IS TOO SLOW.
+
+DIAGNOSIS:	FORSE DOES A PUSH - POP OF AC0 FOR EACH CHARACTER.
+		THIS IS ONLY REQUIRED IN SPECIAL CASES.
+
+CURE:		REMOVE CODE AND TEST FOR SPECIAL CASES.
+
+CCO 31-134	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	FORSE USES SEVERAL FULL WORD SWITCHES THAT ARE TESTED
+		FOR EACH CHARACTER. THIS WASTES TIME AND SPACE.
+
+DIAGNOSIS:	NO FLAG BITS LEFT IN FLAG ACCS.
+
+CURE:		USE LEFT HALF OF AC16, WHICH IS UNUSED IN OP-SYSTEM.
+
+NOTE:		WITH CCOS 61, 116, 132, AND 133 OUTPUT OF CHARACTERS
+		IS NOW UP TO THREE TIMES AS FAST AS FORMERLY.
+
+
+CCO 31-135	DMN	DOCUMENTATION CHANGE
+
+ROUTINE		LOW40
+
+SYMPTOM:	PEOPLE DO NOT ALWAYS UNDERSTAND THE ERROR MESSAGE
+		"?FORTR.SHR DOES NOT CORRESPOND TO IMP40"
+
+CURE:		CHANGE MESSAGE TO BE
+		"?LIBRARY(FORTR.SHR) AND USER PROGRAM VERSION NUMBERS
+		 ARE DIFFERENT"
+
+CCO 31-136	DMN
+
+ROUTINE		MAGDEN,BUFFER,RELEAS,SAVCK
+
+SYMPTOM:	REENTRANT FORSE GETS PDLOV ETC. ON SOME ERROR MESSAGES.
+
+DIAGNOSIS:	ERRORS IN MAGDEN, BUFFER ETC ENTER OP-SYSTEM WITHOUT
+		SETTING UP AC 16
+
+CURE:		XCT UUOL.  BEFORE PUSHING TO OP-SYSTEM.
+
+
+
+CCO 31-137	DMN	DOCUMENTATION CHANGE
+
+ROUTINE		LIB40
+
+SYMPTOM:	NO SIMPLE WAY TO COPY LIBRARY ONTO DEC TAPES.
+
+CURE:		MAKE 9 PIP FILES 1.CCL THROUGH 9.CCL WHICH COPY FROM 
+		DSK TO LOGICAL DEVICE 1 THRU 9, LIST DIRECTORY AND UNLOAD
+		DTA.
+
+CCO 31-140	DMN
+
+ROUTINES	DIRT,INTI,OCTI
+
+SYMPTOM:	SIMILAR TO CCO 31-77
+
+CURE:		AS ABOVE
+
+CCO 31-141	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	SPOOLING LPT TO DSK RAPIDLY FILLS DSK.
+
+DIAGNOSIS:	FORSE DOES AN OUTPUT UUO FOR EACH LINE IF
+		DEVICE IS LPT OR TTY.
+
+CURE:		TEST FOR SPOOLING, AND IF SO ONLY OUTPUT
+		WHEN BUFFER IS FULL
+
+CC0 31-143	DMN
+
+ROUTINE		INTI
+
+SYMPTOM:	MULTIPLE INTEGER OVERFLOWS OCCUR WHEN INPUTTING
+		A VERY LARGE NUMBER (EG. 99999999999999)
+
+DIAGNOSIS:	NO TEST IS MADE FOR OVERFLOW.
+
+CURE:		TEST FOR OVERFLOW, LET IT HAPPEN ONCE THEN FLAG
+		IT.
+
+CCO 31-144	DMN
+
+ROUTINE		ERROR
+
+SYMPTOM		THE TTY BUFFER IS NOT OUTPUT BEFORE ERROR TYPES
+		A MESSAGE USING TTCALLS.
+
+DIAGNOSIS:	WAS NOT DESIGNED TO DO THAT.
+
+CURE:		CLOSE THE TTY BEFORE DOING A TTCALL
+
+CCO 31-145	DMN
+
+ROUTINE		SCALE
+
+SYMPTOM:	PLOTTER FUNCTIONS DO NOT SCALE CORRECTLY.
+
+DIAGNOSIS:	SCALE USES IFIX, BUT IFIX WAS CHANGED TO CONFORM
+		TO ANSI SPECS.
+
+CURE:		REMOVE REFERENCE TO IFIX. ADD INLINE CODE CORRESPONDING
+		TO OLD IFIX.
+
+ CCO 31-146	DMN
+
+ROUTINES	FORSE,RELEAS
+
+SYMPTOM:	RELEASED CHANNELS ARE NOT REUSED UNTIL ALL 17 CHANNELS
+		HAVE BEEN ASSIGNED A LEAST ONCE.
+
+DIAGNOSIS:	FNDSLT ROUTINE ONLY CALLED WHEN ALL 17 CHANNELS HAVE
+		BEEN ASSIGNED AT LEAST ONCE.
+
+CURE:		CALL FNDSLT EACH TIME TO FIND LOWEST CHANNEL NOT
+		IN USE.
+
+CCO 31-147	DMN
+
+ROUTINES	FORSE,RELEAS,DATBS,SETBFS
+
+SYMPTOM:	RELEAS DOES NOT RECLAIM BUFFER SPACE SO FORSE GETS
+		NEXT BUFFER RING FROM FREE CORE. THIS SOON USES ALL OF CORE
+
+DIAGNOSIS:	NO CODE IN LIB40 TO DO THIS.
+
+CURE:		MAKE RELEAS LINK TOGETHER ALL RELEASED BUFFER SPACE.
+		FORSE THEN WILL USE THIS SPACE IF IT CAN.
+		THIS CODE USES THE DEVSIZ UUO AND WILL ONLY WORK
+		IN THE 5.03 MONITOR, OR LATER. WITH EARLIER MONITORS
+		THE RELEASED BUFFERS WILL NOT BE LINKED, AND NEW
+		BUFFER RINGS WILL BE TAKEN FROM FREE CORE (AS  BEFORE).
+		IF MULTIPLE BUFFERS HAVE BEEN SETUP BY CALLING BUFFER
+		THIS BUFFER RING WILL NOT BE LINKED EITHER.
+		LINK. IN DATBS IS LINK TO RELEASED SPACE.
+
+CCO 31-151	DMN
+
+ROUTINE		FLIRT
+
+SYMPTOM:	FLOATING POINT INPUT OF NUMBERS DIFFERING ONLY IN ZEROS
+		AFTER THE DECIMAL POINT (EG. 1.4 AND 1.40) DIFFER BY
+		ONE BIT.
+
+DIAGNOSIS:	THE EXTRA ZERO CAUSE FLIRT TO MULTIPLY BY 10, THIS
+		IS UNDONE LATER BY MULTIPLYING BY NEGATIVE POWERS OF TEN.
+
+CURE:		DON'T MULTIPLY IF DIGIT IS ZERO, SET A FLAG AND COUNT
+		NUMBER OF ZEROS. IF A NON-ZERO DIGIT IS SEEN MULTIPLY
+		BY 10 FOR EACH ZERO, IF NO DIGIT IS SEEN IGNORE THE
+		ZEROS.
+
+CCO 31-152	DMN	DOCUMENTATION CHANGE
+
+ROUTINE		XNAMES.CMD
+
+SYMPTOM:	LIB40.REL CONTAINS ALL I/O ROUTINES AND FORSE ETC.
+		THIS WASTES SPACE AND TIME IF USER IS LOADING
+		REENTRANT OPERATING SYSTEM.
+
+CURE:		NEW COMMAND FILE XNAMES.CMD IS NAMES.CMD MINUS ALL THE
+		OPERATING SYSTEM AND DUMMY FILES. THUS IT IS MUCH SMALLER
+		AND CONTAINS FAR FEWER ENTRIES.
+		NOTE!!!
+		THIS LIBRARY CAN ONLY BE USED WITH LOADER 52A OR LATER,
+		SINCE THE REENTRANT LIBRARY MUST BE LOADED BY DEFAULT.
+
+CCO 31-154	DMN	DOCUMENTATION CHANGE	SPR 4520
+
+ROUTINE		TRAPS
+
+DIAGNOSIS:	TRAPS CLEARS THE CARRY FLAGS.
+
+CURE:		PRESERVE CRY0 AND CRY1 FLAGS.
+
+CC0 31-156	DMN	SPR 4506
+
+ROUTINE		FORSE
+
+SYMPTOM:	EXTRA BLOCK OF ZEROES ARE WRITTEN IF AN ASCII FILE IS
+		CLOSED AND A BINARY ONE OPENED ON SAME CHANNEL.
+
+DIAGNOSIS:	THE PAKFL. FOR THAT CHANNEL IS NOT BEING CLEARED.
+
+CURE:		CLEAR PAKFL. ON LOOKUP OR ENTER.
+
+CCO 31-161	DMN	DOCUMENTATION CHANGE SPR 2482
+
+ROUTINE		FORSE
+
+SYMPTOM:	A SLASH IN ENCODE-DECODE FORMAT MAY CAUSE AN ERROR
+		TO BE IGNORED.
+
+DIAGNOSIS:	THE "/" ENDS THE RECORD SO THE ILLEGAL PART OF THE FORMAT
+		IS NEVER SEEN.
+
+CURE:		MAKE "/" ILLEGAL IN ENCODE-DECODE.
+		GIVE WARNING MESSAGE
+		WARNING! / IS ILLEGAL IN ENCODE-DECODE, END OF FORMAT ASSUMED
+
+CC0 31-162	DMN
+
+ROUTINE		PDUMP
+
+SYMPTOM:	PDUMP OUTPUT TO TTY OVERPRINTS THE FIRST LINE
+
+DIAGNOSIS:	PDUMP USES FORTRAN CONTROL CHARACTER "*" WHICH DOES NOTHING
+		ON TTY.
+
+CURE:		USE A BLANK INSTEAD.
+
+
+CCO 31-166	DMN
+
+ROUTINES	DATBS,FORSE
+
+SYMPTOM:	RANDEV IS DEFINED IN BOTH DATBS AND FORSE BUT IS NOT
+		A GLOBAL SO USER COULD CHANGE ONLY ONE DEFINITION
+		AND GET ERRORS AT RUN TIME.
+
+CURE:		REMOVE RANDEV, USE DYDVL.
+		THAT IS ALLOW UP TO 17 RANDOM ACCESS DEVICES.
+
+CCO 31-167	DMN
+
+ROUTINE		DEFINE
+
+SYMPTOM:	BUFFER HEADERS GET DESTROYED ETC.
+
+DIAGNOSIS:	CALLING DEFINE FILE WITH A DEVICE NUMBER OUT OF RANGE
+		(GREATER THAN RANDEV) STORED DATA BEYOND THE FILES. AREA.
+		DEFINE NEVER CHECKED THAT THE DEVIVE NUMBER WAS VALID.
+
+CURE:		CHECK THE DEVICE NUMBER AGAINST DYDVL., IF GREATER GIVE
+		A FATAL ERROR MESSAGE
+		?DIRECT ACCESS DEVICE NUMBER XX IS ILLEGAL.
+
+CCO 31-170	DMN
+
+ROUTINE		ERROR
+
+SYMPTOM:	NEED A WAY TO PRINT A FATAL I/O ERROR FROM USER PROGRAM
+		(LOW SEGMENT), TO INCREMENT ERROR COUNT AND CALL EXIT.
+
+CURE:		CALL TYPER. WITH ADDRESS OF MESSAGE IN AC0 (LH)
+		AND ZERO IN AC0 (RH)
+		WILL PRINT MESSAGE AND GO TO EXIT.
+
+CCO  31-171	DMN
+
+ROUTINE		DEFINE
+
+SYMPTOM:	MOST CALLS TO DEFINE FILE WASTE 2 LOCATIONS FOR USERS
+		PPN (USUALLY 0,0)
+
+CURE:		IF EITHER PROJ # OR PROG # IS MISSING ASSUME ZERO
+		THIS CAN SAVE 2 LOCATIONS PER CALL.
+
+CC0  31-172	DMN
+
+ROUTINES	FORSE,DATBS,RANIO,RELEAS
+
+SYMPTOM:	RANDOM ACCESS IS SLOW, AND DOES TOO MANY INPUTS, OUTPUTS,
+		USETO'S AND CLOSES.
+
+DIAGNOSIS:	IT USES BUFFERED MODE, HAS TO BLT INPUT TO OUTPUT BUFFER
+		AND OUTPUTS EACH BLOCK AS SOON AS RECORD IS FINISHED.
+
+CURE:		USE DUMP MODE.
+		READ IN AND OUT OF SAME BUFFER (USU;ING FAKE BUFFER HEADERS)
+		KEEP A RECORD OF CURRENT BLOCK IN CORE (IN RANDV.)
+		ONLY OUTPUT IT IF NEXT RECORD IS IN A DIFFERENT BLOCK.
+		TO FORCE OUTPUT EITHER READ A DIFFERENT BLOCK
+		OR DO A CLOSE (END FILE OR REWIND )
+
+CC0 31-173	DMN
+
+ROUTINE		FORSE,RANIO,DRANIO,*.CMD
+
+SYMPTOM:	RANDOM ACCESS IS REALLY A PART OF FORSE.
+
+CURE:		MAKE IT SO , PUT RANIO CODE IN FORSE,
+		AND FLUSH RANIO AND DRANIO
+
+CC0  31-174	DMN
+
+ROUTINES	FORSE,BINWR,DBINWR,*.CMD
+
+SYMPTOM		BINARY READ AND WRITE IS MOSTLY IN FORSE, REST OF IT
+		SHOULD BE.
+
+CURE:		PUT BINWR CODE IN FORSE AND FLUSH BINWR AND DBINWR
+
+CC0  31-176	DMN
+
+ROUTINE		DATBS
+
+SYMPTOM:	RANDOM ACCESS FLAG IS NOT CLEARED BY RESET. UUO
+
+CURE:		CLEAR IT, MOVE LIMIT OF BLT OF ZERO THROUGH DATA BASE.
+
+
+CC0  31-177	DMN
+
+ROUTINE		FORSE,SETBFS,DSETBF,*.CMD
+
+SYMPTOM:	SETBFS IS REALLY PART OF FORSE.
+
+CURE:		MAKE IT SO, FLUSH SETBFS AND DSETBF
+
+CC0  31-200	DMN	SPR 4566
+
+ROUTINE		TRAPS
+
+SYMPTOM:	FLOATING OVERFLOW MESSAGES ARE NOT OUTPUT.
+
+DIAGNOSIS:	WRONG BIT IS BEING TESTED IN TRAPS.
+		DOCUMENTATION SAYS BIT 9 (JFCL 10,)
+		BUT TRAPS IS TESTING FOR BIT 12 (JFCL 1,)
+
+CURE:		DOCUMENTATION IS CORRECT.
+		TEST FOR JFCL 10,
+
+
+CCO 31-202	DMN
+
+ROUTINES	ERROR,FORSE
+
+SYMPTOM:	RANDOM ACCESS CAN ONLY BE DONE TO DSK, BUT IF DEVICE
+		IS NOT A DSK NO ERROR IS GIVEN.
+
+DIAGNOSIS:	MISSING TEST
+
+CURE:		IF RANAC. = -1 TEST DEVCHR FOR DSKBIT
+		IF NOT DSK GIVE MESSAGE
+		DEVICE NUMBER XX MUST BE DSK FOR RANDOM ACCESS
+CCO 31-203	DMN	DOCUMENTATION CHANGE
+
+ROUTINES	DEFINE,FORSE
+
+SYMPTOM:	THERE IS NO WAY TO SET PROTECTION WHEN WRITING A RANDOM ACCESS FILE
+
+CURE:		ACCEPT A  SEVENTH ARGUMENT TO DEFINE FILE AS 3 OCTAL DIGITS.
+		THIS ARGUMENT WILL BE USED AS THE PROTECTION CODE.
+		NOTE. THIS ARGUMENT MUST BE OCTAL
+		EX. FOR CODE 234 USE (2*8+3)*8+4
+
+CCO 31-304	DMN
+
+ROUTINE		FORSE,DATBS
+
+SYMPTOM:	FORSE DOES NOT TEST FOR LEVEL D (5 SERIES MONITOR)
+
+CURE:		ADD TEST. STORE RESULT IN LEVEL. IN DATBS.
+		LEVEL.=0 IF LEVEL C, LEVEL.=-2 IF LEVEL D
+
+CCO 31-206	DMN
+
+ROUTINES	FORSE
+
+SYMPTOM:	RANDOM ACCESS INPUT FROM FILE ON ANOTHER DSK AREA MAY FAIL.
+
+DIAGNOSIS:	RANDOM ACCESS USES UPDATE MODE (LOOKUP FOLLOWED BY ENTER)
+		THE ENTER MAY GET PROTECTION FAILURE.
+
+CURE:		DO NOT DO ENTER UNLESS USER TRIES TO WRITE TO FILE.
+		THIS ALLOWS MANY USERS TO READ A FILE BUT ONLY ONE TO WRITE IT.
+
+CCO 31-207	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	USETI TO BLOCK -1 IS SPECIAL, IT POINTS TO END OF FILE.
+
+CURE:		ADD CODE TO LOOK FOR RECORD -1 AND DO USETI TO BLOCK -1.
+		THIS IS FOR FUTURE USE, AT PRESENT FORSE DOES NOTHING
+		THAT IS USEFUL WITH RECORD -1.
+
+CCO 31-210	DMN
+
+ROUTINES	FORSE,RELEAS
+
+SYMPTOM:	RELEAS SUBROUTINE ZEROES MANY LOCATIONS IN THE DATA BASE.
+		THIS SHOULD REALLY BE DONE BY FORSE.
+
+CURE:		DEFINE A NEW FORTRAN UUO [35B8] TO BE SIMILAR TO THE CALLI 
+		UUO'S IN THE MONITOR. THIS IS MANY FOR FUTURE EXPANSION.
+		AT PRESENT ONLY FUNCTION 0 AC FIELD =0 IS ALLOWED.
+		RELEAS PUTS THE DEVICE NUMBER IN AC 0 AND EXECUTES
+		THE UUO, FORSE DOES ALL THE REST OF THE WORK.
+
+CCO 31-211	DMN
+
+ROUTINES	FORSE,TPFCN,MBSR
+
+SYMPTOM:	THE TABLE TNAME SHOULD BE INDEXED BY CHANNEL NUMBER,
+		IT IS OUT BY 2.
+
+DIAGNOSIS:	TO SAVE TWO LOCATIONS (SINCE CHAN # 0 IS NOT USED)
+		EACH REFERENCE IS MADE VIA TNAM2 WHICH IS TNAME-2.
+
+CURE:		INCREASE TNAME BY 2, CHANGE ITS NAME TO TNAME. (GLOBAL)
+		DELETE TNAM1. AND TNAM2.
+
+CCO 31-212	DMN	DOCUMENTATIOM CHANGE	
+
+ROUTINE		ERROR
+
+SYMPTOM:	LOOKUP AND ENTER FAILURE DO NOT GIVE INFORMATIVE MESSAGES.
+
+DIAGNOSIS:	THERE IS ONLY ONE MESSAGE EACH FOR LOOKUP AND ENTER FAILURE.
+
+CURE:		PRINT THE ERROR CODE AND A SEPARATE MESSAGE  FOR EACH ERROR.
+		(SEE PDP-10 REFERENCE HANDBOOK  #ATX FOR ERROR CODES)
+
+CCO 31-213	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	SPURIOUS ENCODE-DECODE ERROR MESSAGE EVERYTIME A DECODE
+		WAS ISSUED AFTER AN INITIAL DECODE WHICH WAS ACTUALLY IN ERROR.
+
+DIAGNOSIS:	DECODE COUNT THAT IS IN ERROR CAUSES DECODE BUFFER COUNT
+		TO BECOME -1 INDICATING ERROR. WHEN THE NEXT DECODE IS
+		ISSUED THE COUNT IS ESTABLISHED BY HRRM ALLOWING THE COUNT
+		TO STAY NEGATIVE.
+
+CURE:		CLEAR LEFT HALF WITH HRRZM
+
+CCO 31-214	DMN
+
+ROUTINE		MAGDEN
+
+SYMPTOM:	ERROR IN LOGIC THAT CHECKED MAGTAPE SLOTS.
+
+DIAGNOSIS:	THE TEST LOOP TEST ONE TOO MANY SLOTS.
+
+CURE:		REPLACE ALL REFERENCES TO MBFBG. BY MTABF.
+
+CCO 31-216	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM		WHEN GIVING USER CONTROL FOR ENDFILE OR ERROR THE APR
+		FLAGS ARE CLEARED. THIS CAUSES NO KNOWN PROBLEM.
+
+DIAGNOSIS:	FORSE DOES A JRSTF (A) THUS CLEARING THE FLAGS.
+
+CURE:		A SIMPLE JRST (A) WOULD LEAVE THE FLAGS AS THEY WERE,
+		BUT A BETTER FIX IS THE RESTORE THE FLAGS FROM THE UUO
+		TRAP LOCATION JUST INCASE THEY HAVE CHANGED.
+
+CCO 31-221	DMN
+
+ROUTINE		FORSE
+
+SYMPTOM:	STRINGS ENCLOSED BY SINGLE QUOTES CAN ONLY BE 132
+		CHARACTERS LONG BUT NO WARNING IS GIVEN IF LONGER.
+
+DIAGNOSIS:	UNDOCUMENTED RESTRICTION.
+
+CURE:		REMOVE IT AND ALLOW ANY LENGTH OF TEXT STRING
+
+
+
+------------------------------------------------------------
+
+Deficiencies found in FORTRAN library update "A" to  Version
+30.
+
+These errors were reported while  the  FORTRAN  library  was
+being  tested  using the reentrant operating system (FORSE).
+The number,if any,  preceeding  the  problem  indicates  the
+software trouble report associated with it.
+
+SPR#            PROBLEM
+
+485     DOUBT-   .1000000000000000d+03   is    output    as:
+        .9999999999999999D+02 that is the rounding is off at
+        16 places.
+
+2621    NAMELIST has trouble with reading data that does not
+        follow the NAMELIST output format exactly.
+
+( )     Magnetic tape  simulation  on  disk  can  cause  the
+        associated  data file to be truncated.  That is when
+        the file is opened for reading and some records read
+        and  then  records  are  written  beginning with the
+        record following the last record read, the file  may
+        be  truncated  if  the last record number written is
+        not less than or equal to the largest record  number
+        in the file before writing took place.
+
+( )     During  a  random  access  test  the  error  message
+        'ILLEGAL  CHARACTER  IN  INPUT  STRING' was reported
+        when the following sequence took place.  Call define
+        file  on  unit  write  file  backwards  on unit call
+        RELEAS on unit read random record on unit
+        This is because call to  RELEAS  clears  the  random
+        access status.
+
+*******4 series bug*********
+( )     End of file  is  not  detected  properly  on  random
+        access input files either through the "end=" feature
+        or by default.  The reason was  that  USETO  cleared
+        end  of  file  status  under 4 Series Monitors.  The
+        patch  to  correct  this  will  be  printed  in  the
+        Software Bulletin as MCO# 939 for 4 Series Monitors,
+        patch level bv.
+
+4360	ERR=n in non-Formatted read is ineffective.
+	Error message for parity error gives nonsense unit.
+	There is no way to get past "dirty tape" records.
+
+4355	BACKSPACE statement apparently fails to backspace ASCII records.
+
+4252	Backspace of a binary file on disk does not work. Instead
+	of backspacing 1 record it backspaces to the beginning of file.
+
+4185	LIB40 requires two termination characters at the end of each
+	line in order to successfully recognise that a line has ended.
+
+3996	Reread doesn't work on device DSK0 through DSK4.
+
+3144	A skip record is apparently ignored if logical record size is 	
+	< 1 physical record but is executed properly if > 1 physical
+	record.
+	A read-write sequence leaves an extra record on the tape. This
+	is due to double-buffered read being one buffer ahead and not
+	re-positioning itself properly.
+
+
+[END OF LIB40.DOC]

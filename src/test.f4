@@ -1,0 +1,9 @@
+00100	*	This is a simple test program to see if compiler works
+00200		dimension a(10000)
+00300		i = 1234
+00400		do 25 j=1,10000
+00500		a(j) = float(i+j)
+00600		a(j) = sqrt(a(j))
+00700	25	continue
+00800		call exit
+00900		end

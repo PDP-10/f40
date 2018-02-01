@@ -1,0 +1,74 @@
+This is an informal description of changes made at Stanford
+to DEC FORTRAN (F40) and runtime (LIB40).
+
+At the moment (07/09/76) this file describes only those changes
+made by Erik J. Gilbert in the recent past.  Previous Stanford mods
+(e.g. those by Ralph Gorin and Andy Moorer) are not idiscussed here.
+
+Hopefully, future mods to the compiler will have an entry made in this
+file, but don't count too heavily on it.
+
+
+The recent *EJG* changes were made mostly to implement one modification.
+This was to implement the newer hardware double precision floating point
+number format, insteead of the older software format.  Normally, both
+the KI-10 and KL-10 support both formats, but the Stanford KL-10
+microcode locations for the instructions UFA, DFN, FADL, FSBL, FMPL,
+and FDVL were usurped for other purposes.  So, these instructions are
+available only through very slow monitor level emulation.
+
+Also, a few changes were made (those to FORSE, DATBS, and ERROR) to
+implement a fix to a "bug" in the processing of the REREAD statement.
+Previously, FORTRAN did not correctly implement REREAD when the line
+to be reread was split across a buffer boundary.  This has been changed
+so that whenever such a split line is encountered, it is copied into
+an auxiliiary buffer area for use by a REREAD.
+
+
+The double precision changes obviated the need for special subroutines
+to do double precision flooting point arithmetic, so the routines
+DFM.., DFDV, DFMP, and DFAS were deleted from the library (LIB40.REL).
+
+If it is ever necessary to generate a version of the compiler using
+the software format, this should be possible by restoring the above
+modules to LIB40.REL, and by reassembling the changed modules with
+assembly time parameters changed as follows:
+  1.)	In F40 (modules FX1,FX2,FX3,FX4), make HARDFL undefined by
+	removing the statement giving it a value.
+  2.)	All LIB40 modules may be changed by changing the header file
+	DEF40.  KI10 should be set to zero and KA10 set to one.
+
+
+A list of modules affected by these changes, along with page numbers
+(E directory = page#1) of all changes follows:
+DABS	2
+DATAN	2,3,5
+DATAN2	2,3,4
+DATBS	5			(REREAD fix)
+DEF40	2
+DEXP	2,3,4,5
+DEXP2	2,3
+DEXP3	2,3
+DFAS				(deleted from LIB40.REL)
+DFDV				(deleted from LIB40.REL)
+DFIX	2
+DFM..				(deleted from LIB40.REL)
+DFMP				(deleted from LIB40.REL)
+DIRT	2,6
+DLOG	2,3,4,5,6
+DMOD	2,3
+DOUBT	2,3,4,7
+DSIGN	2
+DSIN	2,3
+DSQRT	2,3,4
+ERROR	2,9			(REREAD fix)
+FLOAT	2
+FORSE	3,11,29,33		(REREAD fix)
+FX1	2,4,58,66-69
+FX2	47,89,97,104,122
+FX3	20,26,32
+IDINT	2
+NEGATT	2
+SNGL	2
+TABMP	2
+TRAPS	3,4,5
